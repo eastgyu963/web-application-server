@@ -35,6 +35,7 @@ public class RequestHandler extends Thread {
             // TODO 사용자 요청에 대한 처리는 이 곳에 구현하면 된다.
             HttpRequest httpRequest = new HttpRequest(in);
             httpRequest.parse();
+
             String method = httpRequest.getMethod();
             String requestUrl = httpRequest.getRequestUrl();
             String cookie = httpRequest.getHeader("Cookie");
@@ -56,9 +57,9 @@ public class RequestHandler extends Thread {
                     response200CssHeader(dos, body.length);
                     responseBody(dos, body);
                 } else if (requestUrl.contains("/user/list")) {
-                    Map<String, String> stringMap = HttpRequestUtils.parseCookies(cookie);
+                    Map<String, String> cookies = HttpRequestUtils.parseCookies(cookie);
 
-                    if (stringMap.get("logined").equals("true")) {
+                    if (cookies.get("logined").equals("true")) {
                         String userListHtml = makeUserListHtml(DataBase.findAll());
                         byte[] body = userListHtml.toString().getBytes();
                         DataOutputStream dos = new DataOutputStream(out);
@@ -80,22 +81,19 @@ public class RequestHandler extends Thread {
                 }
             } else if (method.equals("POST")) {
                 if (requestUrl.contains("/user/create")) {
-//                    String body = IOUtils.readData(br, contentLength);
                     log.info("body:{}", strBody);
-                    Map<String, String> stringMap = HttpRequestUtils.parseQueryString(strBody);
-                    User user = new User(stringMap.get("userId"), stringMap.get("password"),
-                            stringMap.get("name"),
-                            stringMap.get("email"));
+                    User user = new User(httpRequest.getParameter("userId"),
+                            httpRequest.getParameter("password"),
+                            httpRequest.getParameter("name"),
+                            httpRequest.getParameter("email"));
                     log.info("user:{}", user);
                     DataBase.addUser(user);
                     DataOutputStream dos = new DataOutputStream(out);
                     response302Header(dos, "http://localhost:8080/index.html");
                 } else if (requestUrl.contains("/user/login")) {
-//                    String body = IOUtils.readData(br, contentLength);
                     log.info("body:{}", strBody);
-                    Map<String, String> stringMap = HttpRequestUtils.parseQueryString(strBody);
-                    String userId = stringMap.get("userId");
-                    String password = stringMap.get("password");
+                    String userId = httpRequest.getParameter("userId");
+                    String password = httpRequest.getParameter("password");
                     User userById = DataBase.findUserById(userId);
                     if (userById != null && userById.getPassword().equals(password)) {
                         log.info("login success");
