@@ -43,9 +43,11 @@ public class RequestHandler extends Thread {
             String[] split = firstLine.split(" ");
             String method = split[0];
             String requestUrl = split[1];
-            log.info("method:{}", method);
-            log.info("request url:{}", requestUrl);
-
+            log.info("method: {}", method);
+            log.info("request url: {}", requestUrl);
+            if (requestUrl == null) {
+                return;
+            }
             if (method.equals("GET")) {
                 if (requestUrl.contains(".html")) {
                     String html = readHtml(requestUrl);
@@ -65,7 +67,7 @@ public class RequestHandler extends Thread {
                     String s;
                     String cookie = "";
                     while ((s = br.readLine()) != null) {
-                        log.info("line: {}", s);
+                        log.info("header: {}", s);
                         if (s.isEmpty()) {
                             break;
                         }
@@ -78,19 +80,8 @@ public class RequestHandler extends Thread {
                     Map<String, String> stringMap = HttpRequestUtils.parseCookies(cookie);
 
                     if (stringMap.get("logined").equals("true")) {
-                        StringBuilder listHtml = new StringBuilder();
-                        listHtml.append(
-                                "<!DOCTYPE html><html><head><title>user list</title></head><body>");
-                        listHtml.append("<table><tr><th>userId</th><th>name</th></tr>");
-                        Collection<User> Users = DataBase.findAll();
-                        for (User user : Users) {
-                            log.info("user:{}", user);
-                            listHtml.append(
-                                    "<tr><td>" + user.getUserId() + "</td>" +
-                                            "<td>" + user.getName() + "</td></tr>");
-                        }
-                        listHtml.append("</table></body></html>");
-                        byte[] body = listHtml.toString().getBytes();
+                        String userListHtml = makeUserListHtml(DataBase.findAll());
+                        byte[] body = userListHtml.toString().getBytes();
                         DataOutputStream dos = new DataOutputStream(out);
                         response200Header(dos, body.length);
                         responseBody(dos, body);
@@ -144,6 +135,22 @@ public class RequestHandler extends Thread {
         } catch (IOException e) {
             log.error(e.getMessage());
         }
+    }
+
+    private String makeUserListHtml(Collection<User> users) {
+        StringBuilder listHtml = new StringBuilder();
+        listHtml.append(
+                "<!DOCTYPE html><html><head><title>user list</title></head><body>");
+        listHtml.append("<table><tr><th>userId</th><th>name</th></tr>");
+        Collection<User> Users = DataBase.findAll();
+        for (User user : Users) {
+            log.info("user:{}", user);
+            listHtml.append(
+                    "<tr><td>" + user.getUserId() + "</td>" +
+                            "<td>" + user.getName() + "</td></tr>");
+        }
+        listHtml.append("</table></body></html>");
+        return listHtml.toString();
     }
 
     private String readPostBody(BufferedReader br) {
