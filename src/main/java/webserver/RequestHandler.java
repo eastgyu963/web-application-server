@@ -54,6 +54,13 @@ public class RequestHandler extends Thread {
                     byte[] body = html.getBytes();
                     response200Header(dos, body.length);
                     responseBody(dos, body);
+                } else if (requestUrl.contains(".css")) {
+                    String css = readCss(requestUrl);
+
+                    DataOutputStream dos = new DataOutputStream(out);
+                    byte[] body = css.getBytes();
+                    response200CssHeader(dos, body.length);
+                    responseBody(dos, body);
                 } else if (requestUrl.contains("/user/list")) {
                     String s;
                     String cookie = "";
@@ -172,6 +179,17 @@ public class RequestHandler extends Thread {
         }
     }
 
+    private void response200CssHeader(DataOutputStream dos, int lengthOfBodyContent) {
+        try {
+            dos.writeBytes("HTTP/1.1 200 OK \r\n");
+            dos.writeBytes("Content-Type: text/css;charset=utf-8\r\n");
+            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+
     private void response302Header(DataOutputStream dos, String url) {
         try {
             dos.writeBytes("HTTP/1.1 302 Found \r\n");
@@ -214,6 +232,24 @@ public class RequestHandler extends Thread {
     }
 
     private String readHtml(String url) {
+        try {
+            FileInputStream fis = new FileInputStream(
+                    "C:\\study\\web-application-server\\webapp" + url);
+            InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.UTF_8);
+            BufferedReader br = new BufferedReader(isr);
+            String s;
+            String result = "";
+            while ((s = br.readLine()) != null) {
+                result = result + s;
+            }
+            return result;
+        } catch (Exception e) {
+            log.error(e.getMessage());
+        }
+        return null;
+    }
+
+    private String readCss(String url) {
         try {
             FileInputStream fis = new FileInputStream(
                     "C:\\study\\web-application-server\\webapp" + url);
