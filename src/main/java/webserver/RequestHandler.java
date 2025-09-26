@@ -45,32 +45,11 @@ public class RequestHandler extends Thread {
             log.info("request url:{}", requestUrl);
 
             if (method.equals("GET")) {
-                if (requestUrl.equals("/index.html")) {
-                    String indexHtml = readHtml("/index.html");
+                if (requestUrl.contains(".html")) {
+                    String html = readHtml(requestUrl);
 
                     DataOutputStream dos = new DataOutputStream(out);
-                    byte[] body = indexHtml.getBytes();
-                    response200Header(dos, body.length);
-                    responseBody(dos, body);
-                } else if (requestUrl.equals("/user/form.html")) {
-                    String userForm = readHtml("/user/form.html");
-
-                    DataOutputStream dos = new DataOutputStream(out);
-                    byte[] body = userForm.getBytes();
-                    response200Header(dos, body.length);
-                    responseBody(dos, body);
-                } else if (requestUrl.equals("/user/login.html")) {
-                    String loginForm = readHtml("/user/login.html");
-
-                    DataOutputStream dos = new DataOutputStream(out);
-                    byte[] body = loginForm.getBytes();
-                    response200Header(dos, body.length);
-                    responseBody(dos, body);
-                } else if (requestUrl.equals("/user/login_failed.html")) {
-                    String loginFailed = readHtml("/user/login_failed.html");
-
-                    DataOutputStream dos = new DataOutputStream(out);
-                    byte[] body = loginFailed.getBytes();
+                    byte[] body = html.getBytes();
                     response200Header(dos, body.length);
                     responseBody(dos, body);
                 } else {
