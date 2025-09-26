@@ -46,24 +46,31 @@ public class RequestHandler extends Thread {
 
             if (method.equals("GET")) {
                 if (requestUrl.equals("/index.html")) {
-                    String indexHtml = readIndexHtml();
+                    String indexHtml = readHtml("/index.html");
 
                     DataOutputStream dos = new DataOutputStream(out);
                     byte[] body = indexHtml.getBytes();
                     response200Header(dos, body.length);
                     responseBody(dos, body);
                 } else if (requestUrl.equals("/user/form.html")) {
-                    String userForm = readUserForm();
+                    String userForm = readHtml("/user/form.html");
 
                     DataOutputStream dos = new DataOutputStream(out);
                     byte[] body = userForm.getBytes();
                     response200Header(dos, body.length);
                     responseBody(dos, body);
                 } else if (requestUrl.equals("/user/login.html")) {
-                    String loginForm = readLoginForm();
+                    String loginForm = readHtml("/user/login.html");
 
                     DataOutputStream dos = new DataOutputStream(out);
                     byte[] body = loginForm.getBytes();
+                    response200Header(dos, body.length);
+                    responseBody(dos, body);
+                } else if (requestUrl.equals("/user/login_failed.html")) {
+                    String loginFailed = readHtml("/user/login_failed.html");
+
+                    DataOutputStream dos = new DataOutputStream(out);
+                    byte[] body = loginFailed.getBytes();
                     response200Header(dos, body.length);
                     responseBody(dos, body);
                 } else {
@@ -74,19 +81,7 @@ public class RequestHandler extends Thread {
                 }
             } else if (method.equals("POST")) {
                 if (requestUrl.contains("/user/create")) {
-                    String contentLength = "";
-                    while (true) {
-                        String line = br.readLine();
-                        log.info("line:{}", line);
-                        if (line.isEmpty()) {
-                            break;
-                        }
-                        if (line.contains("Content-Length")) {
-                            int i = line.indexOf(":");
-                            contentLength = line.substring(i + 2);
-                        }
-                    }
-                    String body = IOUtils.readData(br, Integer.parseInt(contentLength));
+                    String body = readPostBody(br);
                     log.info("body:{}", body);
                     Map<String, String> stringMap = HttpRequestUtils.parseQueryString(body);
                     User user = new User(stringMap.get("userId"), stringMap.get("password"),
@@ -96,12 +91,52 @@ public class RequestHandler extends Thread {
                     DataBase.addUser(user);
                     DataOutputStream dos = new DataOutputStream(out);
                     response302Header(dos, "http://localhost:8080/index.html");
+                } else if (requestUrl.contains("/user/login")) {
+                    String body = readPostBody(br);
+                    log.info("body:{}", body);
+                    Map<String, String> stringMap = HttpRequestUtils.parseQueryString(body);
+                    String userId = stringMap.get("userId");
+                    String password = stringMap.get("password");
+                    User userById = DataBase.findUserById(userId);
+                    if (userById != null && userById.getPassword().equals(password)) {
+                        log.info("login success");
+                        DataOutputStream dos = new DataOutputStream(out);
+                        response302HeaderLoginSuccess(dos, "http://localhost:8080/index.html");
+                    } else {
+                        log.info("login fail");
+                        DataOutputStream dos = new DataOutputStream(out);
+                        response302HeaderLoginFail(dos,
+                                "http://localhost:8080/user/login_failed.html");
+
+                    }
                 }
             }
 
         } catch (IOException e) {
             log.error(e.getMessage());
         }
+    }
+
+    private String readPostBody(BufferedReader br) {
+        try {
+            String contentLength = "";
+            while (true) {
+                String line = br.readLine();
+                log.info("line:{}", line);
+                if (line.isEmpty()) {
+                    break;
+                }
+                if (line.contains("Content-Length")) {
+                    int i = line.indexOf(":");
+                    contentLength = line.substring(i + 2);
+                }
+            }
+            String body = IOUtils.readData(br, Integer.parseInt(contentLength));
+            return body;
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+        return null;
     }
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
@@ -125,6 +160,28 @@ public class RequestHandler extends Thread {
         }
     }
 
+    private void response302HeaderLoginSuccess(DataOutputStream dos, String url) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location: " + url + "\r\n");
+            dos.writeBytes("Set-Cookie: logined=true");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+
+    private void response302HeaderLoginFail(DataOutputStream dos, String url) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location: " + url + "\r\n");
+            dos.writeBytes("Set-Cookie: logined=false");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+
     private void responseBody(DataOutputStream dos, byte[] body) {
         try {
             dos.write(body, 0, body.length);
@@ -134,10 +191,10 @@ public class RequestHandler extends Thread {
         }
     }
 
-    private String readIndexHtml() {
+    private String readHtml(String url) {
         try {
             FileInputStream fis = new FileInputStream(
-                    "C:\\study\\web-application-server\\webapp\\index.html");
+                    "C:\\study\\web-application-server\\webapp" + url);
             InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.UTF_8);
             BufferedReader br = new BufferedReader(isr);
             String s;
@@ -151,42 +208,4 @@ public class RequestHandler extends Thread {
         }
         return null;
     }
-
-    private String readUserForm() {
-        try {
-            FileInputStream fis = new FileInputStream(
-                    "C:\\study\\web-application-server\\webapp\\user\\form.html");
-            InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.UTF_8);
-            BufferedReader br = new BufferedReader(isr);
-            String s;
-            String result = "";
-            while ((s = br.readLine()) != null) {
-                result = result + s;
-            }
-            return result;
-        } catch (Exception e) {
-            log.error(e.getMessage());
-        }
-        return null;
-    }
-
-    private String readLoginForm() {
-        try {
-            FileInputStream fis = new FileInputStream(
-                    "C:\\study\\web-application-server\\webapp\\user\\login.html");
-            InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.UTF_8);
-            BufferedReader br = new BufferedReader(isr);
-            String s;
-            String result = "";
-            while ((s = br.readLine()) != null) {
-                result = result + s;
-            }
-            return result;
-        } catch (Exception e) {
-            log.error(e.getMessage());
-        }
-        return null;
-    }
-
-    private String
 }
