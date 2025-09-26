@@ -14,6 +14,7 @@ import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.HttpRequestUtils;
+import util.IOUtils;
 
 public class RequestHandler extends Thread {
 
@@ -37,35 +38,54 @@ public class RequestHandler extends Thread {
             log.info("first line:{}", firstLine);
 
             String[] split = firstLine.split(" ");
-            log.info("request url:{}", split[1]);
-            if (split[1].equals("/index.html")) {
-                String indexHtml = readIndexHtml();
+            String method = split[0];
+            String requestUrl = split[1];
+            log.info("method:{}", method);
+            log.info("request url:{}", requestUrl);
 
-                DataOutputStream dos = new DataOutputStream(out);
-                byte[] body = indexHtml.getBytes();
-                response200Header(dos, body.length);
-                responseBody(dos, body);
-            } else if (split[1].equals("/user/form.html")) {
-                String userForm = readUserForm();
+            if (method.equals("GET")) {
+                if (requestUrl.equals("/index.html")) {
+                    String indexHtml = readIndexHtml();
 
-                DataOutputStream dos = new DataOutputStream(out);
-                byte[] body = userForm.getBytes();
-                response200Header(dos, body.length);
-                responseBody(dos, body);
-            } else if (split[1].contains("/user/create")) {
-                String[] token = split[1].split("\\?");
-                String query = token[1];
-                log.info("query:{}", query);
-                Map<String, String> stringMap = HttpRequestUtils.parseQueryString(query);
-                User user = new User(stringMap.get("userId"), stringMap.get("password"),
-                        stringMap.get("name"),
-                        stringMap.get("email"));
-                log.info("user:{}", user);
-            } else {
-                DataOutputStream dos = new DataOutputStream(out);
-                byte[] body = "Hello World".getBytes();
-                response200Header(dos, body.length);
-                responseBody(dos, body);
+                    DataOutputStream dos = new DataOutputStream(out);
+                    byte[] body = indexHtml.getBytes();
+                    response200Header(dos, body.length);
+                    responseBody(dos, body);
+                } else if (requestUrl.equals("/user/form.html")) {
+                    String userForm = readUserForm();
+
+                    DataOutputStream dos = new DataOutputStream(out);
+                    byte[] body = userForm.getBytes();
+                    response200Header(dos, body.length);
+                    responseBody(dos, body);
+                } else {
+                    DataOutputStream dos = new DataOutputStream(out);
+                    byte[] body = "Hello World".getBytes();
+                    response200Header(dos, body.length);
+                    responseBody(dos, body);
+                }
+            } else if (method.equals("POST")) {
+                if (requestUrl.contains("/user/create")) {
+                    String contentLength = "";
+                    while (true) {
+                        String line = br.readLine();
+                        log.info("line:{}", line);
+                        if (line.isEmpty()) {
+                            break;
+                        }
+                        if (line.contains("Content-Length")) {
+                            int i = line.indexOf(":");
+                            contentLength = line.substring(i + 2);
+                        }
+                    }
+                    String body = IOUtils.readData(br, Integer.parseInt(contentLength));
+                    log.info("body:{}", body);
+                    Map<String, String> stringMap = HttpRequestUtils.parseQueryString(body);
+                    User user = new User(stringMap.get("userId"), stringMap.get("password"),
+                            stringMap.get("name"),
+                            stringMap.get("email"));
+                    log.info("user:{}", user);
+                }
             }
 
         } catch (IOException e) {
@@ -102,10 +122,8 @@ public class RequestHandler extends Thread {
             String s;
             String result = "";
             while ((s = br.readLine()) != null) {
-                log.info("s:{}", s);
                 result = result + s;
             }
-            log.info("result:{}", result);
             return result;
         } catch (Exception e) {
             log.error(e.getMessage());
@@ -122,10 +140,8 @@ public class RequestHandler extends Thread {
             String s;
             String result = "";
             while ((s = br.readLine()) != null) {
-                log.info("s:{}", s);
                 result = result + s;
             }
-            log.info("result:{}", result);
             return result;
         } catch (Exception e) {
             log.error(e.getMessage());
