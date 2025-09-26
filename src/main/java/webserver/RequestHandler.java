@@ -48,6 +48,24 @@ public class RequestHandler extends Thread {
             log.info("method: {}", method);
             log.info("request url: {}", requestUrl);
 
+            //헤더 읽는 부분
+            String header = "";
+            int contentLength = 0;
+            String cookie = "";
+            while (!(header = br.readLine()).isEmpty()) {
+                log.info("header: {}", header);
+                if (header.contains("Content-Length")) {
+                    int i = header.indexOf(":");
+                    contentLength = Integer.parseInt(header.substring(i + 2));
+                } else if (header.contains("Cookie")) {
+                    int i = header.indexOf(":");
+                    cookie = header.substring(i + 2);
+                }
+            }
+            log.info("contentLength: {}", contentLength);
+            log.info("cookie: {}", cookie);
+            //헤더 읽기 끝
+
             if (method.equals("GET")) {
                 if (requestUrl.contains(".html")) {
                     String html = readHtml(requestUrl);
@@ -64,16 +82,6 @@ public class RequestHandler extends Thread {
                     response200CssHeader(dos, body.length);
                     responseBody(dos, body);
                 } else if (requestUrl.contains("/user/list")) {
-                    String header = "";
-                    String cookie = "";
-                    while (!(header = br.readLine()).isEmpty()) {
-                        log.info("header: {}", header);
-                        if (header.contains("Cookie")) {
-                            int i = header.indexOf(":");
-                            cookie = header.substring(i + 2);
-                            log.info("cookie: {}", cookie);
-                        }
-                    }
                     Map<String, String> stringMap = HttpRequestUtils.parseCookies(cookie);
 
                     if (stringMap.get("logined").equals("true")) {
@@ -98,7 +106,7 @@ public class RequestHandler extends Thread {
                 }
             } else if (method.equals("POST")) {
                 if (requestUrl.contains("/user/create")) {
-                    String body = readPostBody(br);
+                    String body = IOUtils.readData(br, contentLength);
                     log.info("body:{}", body);
                     Map<String, String> stringMap = HttpRequestUtils.parseQueryString(body);
                     User user = new User(stringMap.get("userId"), stringMap.get("password"),
@@ -109,7 +117,7 @@ public class RequestHandler extends Thread {
                     DataOutputStream dos = new DataOutputStream(out);
                     response302Header(dos, "http://localhost:8080/index.html");
                 } else if (requestUrl.contains("/user/login")) {
-                    String body = readPostBody(br);
+                    String body = IOUtils.readData(br, contentLength);
                     log.info("body:{}", body);
                     Map<String, String> stringMap = HttpRequestUtils.parseQueryString(body);
                     String userId = stringMap.get("userId");
@@ -148,25 +156,6 @@ public class RequestHandler extends Thread {
         }
         listHtml.append("</table></body></html>");
         return listHtml.toString();
-    }
-
-    private String readPostBody(BufferedReader br) {
-        try {
-            String contentLength = "";
-            String header = "";
-            while (!(header = br.readLine()).isEmpty()) {
-                log.info("header: {}", header);
-                if (header.contains("Content-Length")) {
-                    int i = header.indexOf(":");
-                    contentLength = header.substring(i + 2);
-                }
-            }
-            String body = IOUtils.readData(br, Integer.parseInt(contentLength));
-            return body;
-        } catch (IOException e) {
-            log.error(e.getMessage());
-        }
-        return null;
     }
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
