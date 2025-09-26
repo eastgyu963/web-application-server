@@ -1,5 +1,6 @@
 package webserver;
 
+import db.DataBase;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
@@ -59,10 +60,10 @@ public class RequestHandler extends Thread {
                     response200Header(dos, body.length);
                     responseBody(dos, body);
                 } else if (requestUrl.equals("/user/login.html")) {
-                    String userForm = readUserForm();
+                    String loginForm = readLoginForm();
 
                     DataOutputStream dos = new DataOutputStream(out);
-                    byte[] body = userForm.getBytes();
+                    byte[] body = loginForm.getBytes();
                     response200Header(dos, body.length);
                     responseBody(dos, body);
                 } else {
@@ -92,6 +93,7 @@ public class RequestHandler extends Thread {
                             stringMap.get("name"),
                             stringMap.get("email"));
                     log.info("user:{}", user);
+                    DataBase.addUser(user);
                     DataOutputStream dos = new DataOutputStream(out);
                     response302Header(dos, "http://localhost:8080/index.html");
                 }
@@ -168,5 +170,23 @@ public class RequestHandler extends Thread {
         return null;
     }
 
+    private String readLoginForm() {
+        try {
+            FileInputStream fis = new FileInputStream(
+                    "C:\\study\\web-application-server\\webapp\\user\\login.html");
+            InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.UTF_8);
+            BufferedReader br = new BufferedReader(isr);
+            String s;
+            String result = "";
+            while ((s = br.readLine()) != null) {
+                result = result + s;
+            }
+            return result;
+        } catch (Exception e) {
+            log.error(e.getMessage());
+        }
+        return null;
+    }
 
+    private String
 }
