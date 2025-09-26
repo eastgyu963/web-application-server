@@ -38,6 +38,7 @@ public class RequestHandler extends Thread {
             BufferedReader br = new BufferedReader(r);
 
             String firstLine = br.readLine();
+            log.info("\n******************************************************");
             log.info("first line:{}", firstLine);
             if (firstLine == null) {
                 return;
