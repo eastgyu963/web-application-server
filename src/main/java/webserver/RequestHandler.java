@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.Map;
 import model.User;
 import org.slf4j.Logger;
@@ -35,6 +36,7 @@ public class RequestHandler extends Thread {
             // TODO 사용자 요청에 대한 처리는 이 곳에 구현하면 된다.
             InputStreamReader r = new InputStreamReader(in);
             BufferedReader br = new BufferedReader(r);
+
             String firstLine = br.readLine();
             log.info("first line:{}", firstLine);
 
@@ -52,6 +54,47 @@ public class RequestHandler extends Thread {
                     byte[] body = html.getBytes();
                     response200Header(dos, body.length);
                     responseBody(dos, body);
+                } else if (requestUrl.contains("/user/list")) {
+                    String s;
+                    String cookie = "";
+                    while ((s = br.readLine()) != null) {
+                        log.info("line: {}", s);
+                        if (s.isEmpty()) {
+                            break;
+                        }
+                        if (s.contains("Cookie")) {
+                            int i = s.indexOf(":");
+                            cookie = s.substring(i + 2);
+                            log.info("cookie: {}", cookie);
+                        }
+                    }
+                    Map<String, String> stringMap = HttpRequestUtils.parseCookies(cookie);
+
+                    if (stringMap.get("logined").equals("true")) {
+                        StringBuilder listHtml = new StringBuilder();
+                        listHtml.append(
+                                "<!DOCTYPE html><html><head><title>user list</title></head><body>");
+                        listHtml.append("<table><tr><th>userId</th><th>name</th></tr>");
+                        Collection<User> Users = DataBase.findAll();
+                        for (User user : Users) {
+                            log.info("user:{}", user);
+                            listHtml.append(
+                                    "<tr><td>" + user.getUserId() + "</td>" +
+                                            "<td>" + user.getName() + "</td></tr>");
+                        }
+                        listHtml.append("</table></body></html>");
+                        byte[] body = listHtml.toString().getBytes();
+                        DataOutputStream dos = new DataOutputStream(out);
+                        response200Header(dos, body.length);
+                        responseBody(dos, body);
+                    } else {
+                        String loginForm = readHtml("/user/login.html");
+                        byte[] body = loginForm.getBytes();
+                        DataOutputStream dos = new DataOutputStream(out);
+                        response200Header(dos, body.length);
+                        responseBody(dos, body);
+                    }
+
                 } else {
                     DataOutputStream dos = new DataOutputStream(out);
                     byte[] body = "Hello World".getBytes();
