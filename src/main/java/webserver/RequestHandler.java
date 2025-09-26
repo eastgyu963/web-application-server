@@ -9,8 +9,11 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import util.HttpRequestUtils;
 
 public class RequestHandler extends Thread {
 
@@ -42,6 +45,22 @@ public class RequestHandler extends Thread {
                 byte[] body = indexHtml.getBytes();
                 response200Header(dos, body.length);
                 responseBody(dos, body);
+            } else if (split[1].equals("/user/form.html")) {
+                String userForm = readUserForm();
+
+                DataOutputStream dos = new DataOutputStream(out);
+                byte[] body = userForm.getBytes();
+                response200Header(dos, body.length);
+                responseBody(dos, body);
+            } else if (split[1].contains("/user/create")) {
+                String[] token = split[1].split("\\?");
+                String query = token[1];
+                log.info("query:{}", query);
+                Map<String, String> stringMap = HttpRequestUtils.parseQueryString(query);
+                User user = new User(stringMap.get("userId"), stringMap.get("password"),
+                        stringMap.get("name"),
+                        stringMap.get("email"));
+                log.info("user:{}", user);
             } else {
                 DataOutputStream dos = new DataOutputStream(out);
                 byte[] body = "Hello World".getBytes();
@@ -78,6 +97,26 @@ public class RequestHandler extends Thread {
         try {
             FileInputStream fis = new FileInputStream(
                     "C:\\study\\web-application-server\\webapp\\index.html");
+            InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.UTF_8);
+            BufferedReader br = new BufferedReader(isr);
+            String s;
+            String result = "";
+            while ((s = br.readLine()) != null) {
+                log.info("s:{}", s);
+                result = result + s;
+            }
+            log.info("result:{}", result);
+            return result;
+        } catch (Exception e) {
+            log.error(e.getMessage());
+        }
+        return null;
+    }
+
+    private String readUserForm() {
+        try {
+            FileInputStream fis = new FileInputStream(
+                    "C:\\study\\web-application-server\\webapp\\user\\form.html");
             InputStreamReader isr = new InputStreamReader(fis, StandardCharsets.UTF_8);
             BufferedReader br = new BufferedReader(isr);
             String s;
