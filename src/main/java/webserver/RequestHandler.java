@@ -16,7 +16,6 @@ import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.HttpRequestUtils;
-import util.IOUtils;
 
 public class RequestHandler extends Thread {
 
@@ -34,38 +33,12 @@ public class RequestHandler extends Thread {
 
         try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
             // TODO 사용자 요청에 대한 처리는 이 곳에 구현하면 된다.
-            InputStreamReader r = new InputStreamReader(in);
-            BufferedReader br = new BufferedReader(r);
-
-            String firstLine = br.readLine();
-            log.info("\n******************************************************");
-            log.info("first line:{}", firstLine);
-            if (firstLine == null) {
-                return;
-            }
-            String[] split = firstLine.split(" ");
-            String method = split[0];
-            String requestUrl = split[1];
-            log.info("method: {}", method);
-            log.info("request url: {}", requestUrl);
-
-            //헤더 읽는 부분
-            String header = "";
-            int contentLength = 0;
-            String cookie = "";
-            while (!(header = br.readLine()).isEmpty()) {
-                log.info("header: {}", header);
-                if (header.contains("Content-Length")) {
-                    int i = header.indexOf(":");
-                    contentLength = Integer.parseInt(header.substring(i + 2));
-                } else if (header.contains("Cookie")) {
-                    int i = header.indexOf(":");
-                    cookie = header.substring(i + 2);
-                }
-            }
-            log.info("contentLength: {}", contentLength);
-            log.info("cookie: {}", cookie);
-            //헤더 읽기 끝
+            HttpRequest httpRequest = new HttpRequest(in);
+            httpRequest.parse();
+            String method = httpRequest.getMethod();
+            String requestUrl = httpRequest.getRequestUrl();
+            String cookie = httpRequest.getHeader("Cookie");
+            String strBody = httpRequest.getBody();
 
             if (method.equals("GET")) {
                 if (requestUrl.contains(".html")) {
@@ -107,9 +80,9 @@ public class RequestHandler extends Thread {
                 }
             } else if (method.equals("POST")) {
                 if (requestUrl.contains("/user/create")) {
-                    String body = IOUtils.readData(br, contentLength);
-                    log.info("body:{}", body);
-                    Map<String, String> stringMap = HttpRequestUtils.parseQueryString(body);
+//                    String body = IOUtils.readData(br, contentLength);
+                    log.info("body:{}", strBody);
+                    Map<String, String> stringMap = HttpRequestUtils.parseQueryString(strBody);
                     User user = new User(stringMap.get("userId"), stringMap.get("password"),
                             stringMap.get("name"),
                             stringMap.get("email"));
@@ -118,9 +91,9 @@ public class RequestHandler extends Thread {
                     DataOutputStream dos = new DataOutputStream(out);
                     response302Header(dos, "http://localhost:8080/index.html");
                 } else if (requestUrl.contains("/user/login")) {
-                    String body = IOUtils.readData(br, contentLength);
-                    log.info("body:{}", body);
-                    Map<String, String> stringMap = HttpRequestUtils.parseQueryString(body);
+//                    String body = IOUtils.readData(br, contentLength);
+                    log.info("body:{}", strBody);
+                    Map<String, String> stringMap = HttpRequestUtils.parseQueryString(strBody);
                     String userId = stringMap.get("userId");
                     String password = stringMap.get("password");
                     User userById = DataBase.findUserById(userId);
