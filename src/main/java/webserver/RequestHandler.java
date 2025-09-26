@@ -39,15 +39,15 @@ public class RequestHandler extends Thread {
 
             String firstLine = br.readLine();
             log.info("first line:{}", firstLine);
-
+            if (firstLine == null) {
+                return;
+            }
             String[] split = firstLine.split(" ");
             String method = split[0];
             String requestUrl = split[1];
             log.info("method: {}", method);
             log.info("request url: {}", requestUrl);
-            if (requestUrl == null) {
-                return;
-            }
+
             if (method.equals("GET")) {
                 if (requestUrl.contains(".html")) {
                     String html = readHtml(requestUrl);
@@ -64,16 +64,13 @@ public class RequestHandler extends Thread {
                     response200CssHeader(dos, body.length);
                     responseBody(dos, body);
                 } else if (requestUrl.contains("/user/list")) {
-                    String s;
+                    String header = "";
                     String cookie = "";
-                    while ((s = br.readLine()) != null) {
-                        log.info("header: {}", s);
-                        if (s.isEmpty()) {
-                            break;
-                        }
-                        if (s.contains("Cookie")) {
-                            int i = s.indexOf(":");
-                            cookie = s.substring(i + 2);
+                    while (!(header = br.readLine()).isEmpty()) {
+                        log.info("header: {}", header);
+                        if (header.contains("Cookie")) {
+                            int i = header.indexOf(":");
+                            cookie = header.substring(i + 2);
                             log.info("cookie: {}", cookie);
                         }
                     }
@@ -156,15 +153,12 @@ public class RequestHandler extends Thread {
     private String readPostBody(BufferedReader br) {
         try {
             String contentLength = "";
-            while (true) {
-                String line = br.readLine();
-                log.info("line:{}", line);
-                if (line.isEmpty()) {
-                    break;
-                }
-                if (line.contains("Content-Length")) {
-                    int i = line.indexOf(":");
-                    contentLength = line.substring(i + 2);
+            String header = "";
+            while (!(header = br.readLine()).isEmpty()) {
+                log.info("header: {}", header);
+                if (header.contains("Content-Length")) {
+                    int i = header.indexOf(":");
+                    contentLength = header.substring(i + 2);
                 }
             }
             String body = IOUtils.readData(br, Integer.parseInt(contentLength));
