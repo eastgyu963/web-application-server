@@ -21,4 +21,15 @@ public class HttpRequestTest {
         assertEquals("ab", httpRequest.getParameter("userId"));
 
     }
+
+    @Test
+    public void request_POST() throws Exception {
+        InputStream in = new FileInputStream(new File(testDirectory + "Http_Post.txt"));
+        HttpRequest httpRequest = new HttpRequest(in);
+        assertEquals("POST", httpRequest.getMethod());
+        assertEquals("/user/create", httpRequest.getRequestUrl());
+        assertEquals("keep-alive", httpRequest.getHeader("Connection"));
+        assertEquals("name", httpRequest.getParameter("name"));
+
+    }
 }
